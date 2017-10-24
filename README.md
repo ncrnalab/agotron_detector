@@ -7,12 +7,15 @@ Under development....
 ## Prerequisites
 
 Ago-CLIP dataset, e.g. [PRJNA312501](https://www.ebi.ac.uk/ena/data/view/PRJNA312501)
+
 [trim_galore](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/) (tested with v0.4.1) to process adaptor sequences off the raw reads
 
 reference genome, e.g. [hg19](http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/)
+
 [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) to align reads with reference genome
 
 python (tested with v2.7.11) with modules: [pysam](https://github.com/pysam-developers/pysam), [numpy](https://github.com/numpy/numpy), and [mySQL](https://pypi.python.org/pypi/MySQL-python/)
+
 [R](https://www.r-project.org) (tested with v3.2.5) with libraries: ggplot2, ggregex, dplyr, and optparse
 
 
@@ -78,7 +81,7 @@ Rscript agotron_visualize.R
 
 ## Citation
 
-**Hansen TB. Agotron_detector. MiMB, 2017, in press**
+**Hansen TB. Agotron_detector. MiMB, 2017, in preparation**
 
 
 ## License
