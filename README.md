@@ -2,86 +2,119 @@
 
 ## Introduction
 
-Under development....
+The *agotron_detector* toolkit identifies and quantifies agotrons in Ago CLIPseq datasets.
+
+
 
 ## Prerequisites
 
-Ago-CLIP dataset, e.g. [PRJNA312501](https://www.ebi.ac.uk/ena/data/view/PRJNA312501)
 
-[trim_galore](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/) (tested with v0.4.1) to process adaptor sequences off the raw reads
+[bowtie2](https://github.com/BenLangmead/bowtie2) (tested with v2.2.8) 
 
-reference genome, e.g. [hg19](http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/)
+[samtools](https://github.com/samtools/) (tested with v1.3)
 
-[bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) to align reads with reference genome
+[python](https://www.python.org/) (tested with v2.7.11) including modules: [pysam](https://github.com/pysam-developers/pysam), [numpy](https://github.com/numpy/numpy), and [mySQL](https://github.com/arnaudsj/mysql-python)
 
-python (tested with v2.7.11) with modules: [pysam](https://github.com/pysam-developers/pysam), [numpy](https://github.com/numpy/numpy), and [mySQL](https://pypi.python.org/pypi/MySQL-python/)
+[R](https://www.r-project.org) (tested with v3.2.5) including packages: ggplot2, ggregex, dplyr, tidyr, and optparse
 
-[R](https://www.r-project.org) (tested with v3.2.5) with libraries: ggplot2, ggregex, dplyr, and optparse
 
 
 ## Scripts / Usage
 
-The agotron_detector repository basically contains three scripts:
-
- 1. agotron_coordinates.py, a python script to extract short introns from the UCSC mySQL server
-    TODO...
- 
- 2. agotron_detector.py, a python script to intersect mapped reads with coordinates of interest (COI) and output agotron-relevant features
-    TODO...
- 
- 3. agotron_visualizer.R, an R script that takes the output from detector.py and makes scatter and density plot
-    TODO...
- 
+The agotron_detector repository basically contains three scripts that should be run sequencially:
 
 
+
+(1) **UCSC_intron_retriever.py**, a python script to extract short introns from the UCSC mySQL server    
+ 
+``` python
+Usage:
+  UCSC_intron_retriever.py [ARGUMENTS] > [OUTPUT]
+  
+Options:
+  -db <string>      MySQL database (default='hg19')
+  -table <string>   MySQL table (default='refGene')
+  -max <int>        Maximum intron length (default=150)
+  -min <int>        Minimum intron length (default=50)
+```
+
+Alternatively, use **UCSC_mirna_retriever.py** or **tophat_intron_retriever.py** to retrieve RefSeq annotated miRNA coordinates or intron coordinates from tophat-produced *junctions.bed*.
+
+
+
+ 
+(2) **analyzer.py**, a python script to intersect mapped reads with coordinates of interest and output agotron-relevant features    
+
+``` python
+Usage:
+  analyzer.py [ARGUMENTS] < [INPUT] > [OUTPUT]
+  
+Required arguments:	
+  -g <file>         Path to reference genome fastafile, must be indexed with samtools faidx
+Optional arguments:	
+  -f <files…>       Input bam-files (default=*.bam)
+  -c <file>         Filename for coverage output (if empty, no coverage file is produced) 
+                    (default='coverage.txt')
+  -tr <int>         RPMM (reads per mapped million) expression threshold for output
+                    (default = 5)
+  -ts <int/'all'>   How many samples to meet RPMM expression threshold. For all samples, type ‘all’ 
+                    (default = 2)
+  -m <float>        Tolerance for reads mapping partly outside locus 
+                    (default=0.1, e.g. 10% of the reads is allowed to map outside locus)
+  -q <int>          Threshold for mapping quality 
+                    (default=13)
+  -a <int>          Add <int> flanking nucleotides (up and downstream) to the loci sequence output 
+                    (default=10) 
+``` 
+ 
+ 
+ 
+(3) **annotater.R**, an R script that annotates agotron and outputs a few different plots
+ 
+``` bash
+Usage: 
+  annotater.R [ARGUMENTS] < [INPUT]	
+
+optional arguments:	
+  -c <file>         Input coverage file (the -c output from analyzer.py) 
+                    (default='coverage.txt')
+  -p <string>       Prefix used in output files 
+                    (default='agotron')
+agotron definition:	
+  -m <int>          Threshold for median read length 
+                    (default=30)
+  -h <float>        Minimum fraction of reads with distance (-d) between 5’end of read and 5’end of locus 
+                    (default=0.7)
+  -d <int>          Maximum distance allowed from predominant 5’end of reads to 5’end of locus 
+                    (default=1)
+```
 
 ## Example
 
-1. Download dataset, e.g. by using the following bash-script:
-```bash
-#!/bin/bash
-
-array=( \
-ftp.sra.ebi.ac.uk/vol1/fastq/SRR317/008/SRR3177718/SRR3177718.fastq.gz \
-ftp.sra.ebi.ac.uk/vol1/fastq/SRR317/009/SRR3177719/SRR3177719.fastq.gz \
-ftp.sra.ebi.ac.uk/vol1/fastq/SRR317/000/SRR3177720/SRR3177720.fastq.gz \
-ftp.sra.ebi.ac.uk/vol1/fastq/SRR317/001/SRR3177721/SRR3177721.fastq.gz \
-ftp.sra.ebi.ac.uk/vol1/fastq/SRR317/002/SRR3177722/SRR3177722.fastq.gz \
-ftp.sra.ebi.ac.uk/vol1/fastq/SRR317/003/SRR3177723/SRR3177723.fastq.gz)
-
-for i in "${array[@]}"
-do
-   wget $i   
-done
-```
-
-2. Trim adapters:
-```bash
-trim_galore -A TCAGTCACTTCCAGC –length 18 *.fastq.gz
-```
-
-3. Map trimmed reads to reference genome
+Clone the repository and run the example script, *all_commands.sh*. 
+This:
+1. Downloads and prepares reference genome (hg19)
+2. Downloads and trims Ago CLIPseq dataset (GSE78059)
+3. Maps dataset to the reference genome using bowtie2
+4. Intersects the mapped reads (bam-files) with annotated short introns to detect and annotate agotrons.
 
 ```bash
-TODO
+sh all_commands.sh
 ```
 
-4. Extract short introns from UCSC mySQL database, and intersect coordinates with mapped bam-files
+To annotate agotrons in mapped data (use -db and -g options to specify the reference genome used):
 
 ```bash
-python agotron_coordinates.py | python agotron_detector -c agotron_coverage.txt -g /path/to/genome.fa -f *.bam > agotrons.bed
+python UCSC_intron_retriever.py -db hg19 | python analyzer.py -g /path/to/hg19.fa -f /path/to/*.bam | Rscript annotater.R 
 ```
 
-5. Visualize Extract short introns from UCSC mySQL database, and intersect coordinates with mapped bam-files
 
-```bash
-Rscript agotron_visualize.R 
-```
 
 
 ## Citation
 
-**Hansen TB. Agotron_detector. MiMB, 2017, in preparation**
+
+**Hansen TB. Detecting agotrons in Ago CLIPseq data. MiMB, 2017, submitted**
 
 
 ## License
